@@ -4,28 +4,27 @@ import base64
 
 
 class DeterministicCredentialsGenerator:
-    def __init__(self, username: str, domain: str = "example.com", password_length: int = 12):
-        self.username = username
+    def __init__(self, domain: str = "gmail.com", password_length: int = 12):
+
+        self.first_name, self.surname = self._generate_name_and_surname()
         self.domain = domain
         self.password_length = password_length
-
-        # Generate name and surname once for reusability
-        self.first_name, self.surname = self._generate_name_and_surname()
 
     def _get_current_month_identifier(self) -> str:
         """Generate a unique identifier based on the current year and month."""
         now = datetime.datetime.now()
-        return f"{self.username}-{now.year}-{now.month}"
+        return f"{self.first_name}-{now.year}-{now.month}"
 
     def _generate_name_and_surname(self) -> tuple:
         """Generate a deterministic first name and surname based on the username."""
-        unique_string = f"{self.username}-name"
-        hashed_value = hashlib.sha256(unique_string.encode()).hexdigest()
 
         first_names = ["Somchai", "Mana", "Manee",
                        "Weera", "Kong", "Suchart", "Somsri", "Wilai"]
         surnames = ["Sukjai", "Wongthai", "Mankhong", "Rungreung",
                     "Charoensuk", "Jaidee", "Thongtae", "Setthi"]
+
+        unique_string = "full-name"
+        hashed_value = hashlib.sha256(unique_string.encode()).hexdigest()
 
         first_name = first_names[int(hashed_value[:2], 16) % len(first_names)]
         surname = surnames[int(hashed_value[2:4], 16) % len(surnames)]
@@ -56,7 +55,7 @@ class DeterministicCredentialsGenerator:
 
     def _generate_static_dob(self) -> str:
         """Generate a deterministic date of birth that remains constant across months."""
-        unique_string = f"{self.username}-dob"
+        unique_string = f"{self.first_name}-dob"
         hashed_value = hashlib.sha256(unique_string.encode()).hexdigest()
 
         birth_year = datetime.datetime.now().year - \
@@ -78,7 +77,7 @@ class DeterministicCredentialsGenerator:
         }
 
 
-generator = DeterministicCredentialsGenerator("john_doe", "gmail.com", 12)
+generator = DeterministicCredentialsGenerator()
 credentials = generator.generate_credentials()
 
 print(f"First Name: {credentials['first_name']}")
