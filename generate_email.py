@@ -36,7 +36,7 @@ class DeterministicCredentialsGenerator:
         """Generate a deterministic email that changes every month."""
         unique_string = self._get_current_month_identifier()
         hashed_value = hashlib.sha256(unique_string.encode()).hexdigest()[
-            :8]  # First 8 characters of hash
+            :4]  # First 4 characters of hash
         return f"{self.first_name.lower()}.{self.surname.lower()}{hashed_value}@{self.domain}"
 
     def _generate_password(self) -> str:
