@@ -7,7 +7,7 @@ This Python script generates deterministic credentials including **Thai names, e
 ✅ Generates **Thai first name and surname** (transliterated into English).  
 ✅ Creates a **deterministic email** that updates **every month**.  
 ✅ Generates a **secure deterministic password** that updates **every month**.  
-✅ Ensures a **static date of birth** (age around 20-22 years).  
+✅ Ensures a **static date of birth** (age around 20-40 years).  
 ✅ Uses **SHA-256 hashing** to ensure consistency across runs.
 
 ## Installation
