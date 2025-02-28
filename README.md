@@ -20,7 +20,7 @@ This script runs with Python 3. No external dependencies are required.
 # Import and initialize the generator
 from credentials_generator import DeterministicCredentialsGenerator
 
-generator = DeterministicCredentialsGenerator("john_doe", "gmail.com", 12)
+generator = DeterministicCredentialsGenerator("gmail.com", 12)
 credentials = generator.generate_credentials()
 
 print(f"First Name: {credentials['first_name']}")
@@ -44,7 +44,7 @@ Date of Birth: 2003-07-15
 
 1. **First name and surname** are generated based on the username and remain static.
 2. **Email and password** are generated based on the **current month**, so they update automatically.
-3. **Date of birth** remains static but ensures an age range of **20-22 years**.
+3. **Date of birth** remains static but ensures an age range of **20-40 years**.
 4. **SHA-256 hashing** is used to maintain idempotency (same input → same output).
 
 ## License
