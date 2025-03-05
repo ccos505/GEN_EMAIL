@@ -1,2 +1,478 @@
 Error encountered while executing final_pipeline.ipynb: [NbConvertApp] WARNING | Config option `kernel_spec_manager_class` not recognized by `NbConvertApp`.
-[NbConvertApp] WARNING | pattern '/home/ec2-user/SageMaker/final_pipeline.ipynb' matched no files
+[NbConvertApp] Converting notebook /home/ec2-user/SageMaker/final_pipeline.ipynb to notebook
+Traceback (most recent call last):
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/bin/jupyter-nbconvert", line 10, in <module>
+    sys.exit(main())
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/jupyter_core/application.py", line 283, in launch_instance
+    super().launch_instance(argv=argv, **kwargs)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/traitlets/config/application.py", line 1075, in launch_instance
+    app.start()
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 418, in start
+    self.convert_notebooks()
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 592, in convert_notebooks
+    self.convert_single_notebook(notebook_filename)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 555, in convert_single_notebook
+    output, resources = self.export_single_notebook(
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 483, in export_single_notebook
+    output, resources = self.exporter.from_filename(
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/exporters/exporter.py", line 198, in from_filename
+    return self.from_file(f, resources=resources, **kw)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/exporters/exporter.py", line 217, in from_file
+    return self.from_notebook_node(
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/exporters/notebook.py", line 36, in from_notebook_node
+    nb_copy, resources = super().from_notebook_node(nb, resources, **kw)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/exporters/exporter.py", line 153, in from_notebook_node
+    nb_copy, resources = self._preprocess(nb_copy, resources)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/exporters/exporter.py", line 349, in _preprocess
+    nbc, resc = preprocessor(nbc, resc)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/preprocessors/base.py", line 48, in __call__
+    return self.preprocess(nb, resources)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/preprocessors/execute.py", line 100, in preprocess
+    self.preprocess_cell(cell, resources, index)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbconvert/preprocessors/execute.py", line 121, in preprocess_cell
+    cell = self.execute_cell(cell, index, store_history=True)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbclient/client.py", line 1062, in async_execute_cell
+    await self._check_raise_for_error(cell, cell_index, exec_reply)
+  File "/home/ec2-user/anaconda3/envs/JupyterSystemEnv/lib/python3.10/site-packages/nbclient/client.py", line 918, in _check_raise_for_error
+    raise CellExecutionError.from_cell_and_msg(cell, exec_reply_content)
+nbclient.exceptions.CellExecutionError: An error occurred while executing the following cell:
+------------------
+import pandas as pd
+import numpy as np
+from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
+from sklearn.ensemble import GradientBoostingClassifier
+import pickle
+import sys
+import pyspark
+from pyspark import SparkConf
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+from pyspark.sql.functions import col, when
+from pyspark_llap import HiveWarehouseSession
+import os
+from cryptography.fernet import Fernet
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.float_format', lambda x: '%.3f' % x)
+
+def refactored_function(utility: Utility):
+    project_properties = utility.get_project_properties()
+
+    def find_max_len(pandas_df, column):
+        return pandas_df[~pandas_df[column].isna()][column].astype(str).str.len().max()
+
+    def define_structure(string, format_type, length_col):
+        try:
+            typo = equivalent_type(format_type, length_col)
+        except:
+            typo = StringType()
+        return StructField(string, typo)
+
+    def convert_sas_spark(sc, df_sas_source, schema_new):
+        columns = list(map(lambda x: x.lower(), df_sas_source.columns))
+        df_sas_source.columns = columns
+        types = list(df_sas_source.dtypes)
+        struct_list = []
+        for column, typo in zip(columns, types):
+            length = find_max_len(df_sas_source, column)
+            struct_list.append(define_structure(column, typo, length))
+        p_schema1 = StructType(struct_list)
+        df_sp = sc.createDataFrame(df_sas_source, p_schema1)
+        df_sp_nonan = df_sp.select([when(col(c) == "NaN", None).otherwise(col(c)).alias(c) for c in df_sp.columns])
+
+        for c, f in zip(df_sp_nonan.columns, schema_new.fields):
+            df_sp_nonan = df_sp_nonan.withColumn(c, col(c).cast(f.dataType))
+        return df_sp_nonan
+
+    def change_column_upper(df):
+        df.columns = [col.upper() for col in df.columns]
+        df = df.replace('', np.nan)
+        return df
+
+    def create_spark_sess():
+        return (
+            SparkSession.builder.appName(project_properties.get("spark_app_name", "JOBCRM_h4c"))
+            .config("spark.driver.extraClassPath", project_properties.get("driver_path", "/home/cdsw/drivers/ojdbc8.jar"))
+            .config("spark.executor.extraClassPath", project_properties.get("executor_path", "/home/cdsw/drivers/ojdbc8.jar"))
+            .config("spark.jars", project_properties.get("jars_path", "/home/cdsw/drivers/ojdbc8.jar"))
+            .config("spark.repl.local.jars", project_properties.get("local_jars_path", "/home/cdsw/drivers/ojdbc8.jar"))
+            .config("spark.executor.memory", project_properties.get("executor_memory", "4G"))
+            .config("spark.driver.memory", project_properties.get("driver_memory", "40G"))
+            .config("spark.executor.cores", project_properties.get("executor_cores", 10))
+            .config("spark.driver.cores", project_properties.get("driver_cores", 10))
+            .config("spark.executor.instances", project_properties.get("executor_instances", 14))
+            .config("spark.dynamicAllocation.enabled", "true")
+            .config("spark.dynamicAllocation.maxExecutors", project_properties.get("max_executors", "14"))
+            .config("spark.driver.maxResultSize", project_properties.get("max_result_size", "20g"))
+            .config("spark.kryoserializer.buffer.max.mb", project_properties.get("kryoserializer_buffer", "2047mb"))
+            .config("spark.executor.heartbeatInterval", project_properties.get("heartbeat_interval", "200s"))
+            .config("spark.yarn.driver.memoryOverhead", project_properties.get("driver_memory_overhead", "1g"))
+            .config("spark.yarn.executor.memoryOverhead", project_properties.get("executor_memory_overhead", "1g"))
+            .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+            .config("spark.network.timeout", project_properties.get("network_timeout", "400s"))
+            .config("spark.sql.autoBroadcastJoinThreshold", "-1")
+            .config("spark.rdd.compress", "true")
+            .config("spark.rpc.message.maxSize", 1024)
+            .config("spark.sql.autoBroadcastJoinThreshold", "524288000")
+            .config("spark.jars", project_properties.get("hive_connector_jar", "/opt/cloudera/parcels/CDH/lib/hive_warehouse_connector/hive-warehouse-connector-assembly-1.0.0.7.1.8.35-1.jar"))
+            .config("spark.sql.htl.sparkCapabilities", "CONNECTORREAD,HIVEFULLACIDREAD,HIVEFULLACIDWRITE,HIVEMANAGESTATS,HIVECACHEINVALIDATE,CONNECTORWRITE,SPARKSQL,EXTREAD,EXTWRITE,HIVESQL,HIVEBUCKET2")
+            .config("spark.kryo.registrator", "com.qubole.spark.hiveacid.util.HiveAcidKyroRegistrator")
+            .config("spark.sql.hive.hiveserver2.jdbc.url.principal", project_properties.get("hive_principal", "hive/hive.dc.krungsri.net@DC.DAP.BAYAD.CO.TH"))
+            .config("spark.sql.hive.hiveserver2.jdbc.url", project_properties.get("hive_jdbc_url", "jdbc:hive2://hive.dc.krungsri.net:10000/;ssl=true;sslTrustStore=/opt/cloudera/security/pki/truststore.jks"))
+            .config("spark.sql.extensions", "com.hortonworks.spark.sql.rule.Extensions")
+            .config("spark.datasource.hive.warehouse.load.staging.dir", project_properties.get("hive_staging_dir", "/tmp"))
+            .master("yarn")
+            .enableHiveSupport()
+            .getOrCreate()
+        )
+
+    def get_hive_table(spark, sql_prep):
+        hive = HiveWarehouseSession.session(spark).build()
+        hive_df = hive.sql(sql_prep)
+        pd_df = hive_df.toPandas()
+        hive.close()
+        return change_column_upper(pd_df)
+
+    def gen_hive_execute(spark, sql_prep):
+        hive = HiveWarehouseSession.session(spark).build()
+        hive_df = hive.execute(sql_prep)
+        hive.close()
+
+    spark = create_spark_sess()
+    spark.sparkContext.setLogLevel("ERROR")
+    hive = HiveWarehouseSession.session(spark).build()
+
+    def save_hive(spark_df, modesave, tbl_name, sink_hdfs_path):
+        spark_df.write.mode(modesave).option('path', sink_hdfs_path).saveAsTable(tbl_name)
+
+    def read_file(sc, formatread, source_hdfs_path):
+        return sc.read.format(formatread).load(source_hdfs_path)
+
+    spark = create_spark_sess()
+    spark.sparkContext.setLogLevel("ERROR")
+    hive = HiveWarehouseSession.session(spark).build()
+
+    try:
+        datetoday = datetime.strptime(sys.argv[1], '%Y-%m-%d')
+    except (IndexError, StopIteration, ValueError):
+        datetoday = date.today()
+
+    Today = datetoday
+    RunMthdt = Today + relativedelta(months=-1)
+    Last12RunMthdt = Today + relativedelta(months=-12)
+    RunMth = RunMthdt.month
+    D1RunMthdt = RunMthdt.replace(day=1)
+    TODAY = (D1RunMthdt + relativedelta(months=1, days=-1)).strftime("%Y-%m-%d")
+    LAST6M = (D1RunMthdt + relativedelta(months=-5)).strftime("%Y-%m-%d")
+    CUSTVIEW = RunMthdt.strftime('%b%Y')
+    SAS = (D1RunMthdt + relativedelta(months=1, days=-1)).strftime('%d%b%Y').upper()
+    SAS_START = (D1RunMthdt + relativedelta(months=-5)).strftime('%d%b%Y').upper()
+    ABT = ((Today) + relativedelta(months=-1)).strftime('%Y%m')
+    end = ((Today) + relativedelta(months=-1)).strftime('%Y-%m-%d')
+
+def process_data(utility):
+    # Import necessary libraries
+    import pandas as pd
+    import numpy as np
+    from pyspark.sql import SparkSession
+
+    # Get project properties
+    props = utility.get_project_properties()
+    TODAY = props.get('TODAY')
+    CUSTVIEW = props.get('CUSTVIEW')
+    ABT = props.get('ABT')
+
+    # Create SparkSession
+    spark = SparkSession.builder.appName("DataProcessing").getOrCreate()
+
+    # Execute Redshift SQL queries and load data into Spark DataFrames
+    kol_df = utility.export_redshift_to_spark("""
+    SELECT cif_number, status, address, start_date, end_date, record_deleted_flag, register_date_kma 
+    FROM ksprd_kol.dim_kol_customer_v_crm 
+    WHERE cif_number IS NOT NULL AND end_date = '9000-12-31' AND record_deleted_flag = 0 AND status = '1-Active'
+    """)
+
+    bank_df = utility.export_redshift_to_spark("""
+    SELECT DISTINCT cif_number, register_address1, contact_address1 
+    FROM ksprd_banc.dim_banc_customer 
+    WHERE cif_number IS NOT NULL AND (register_address1 IS NOT NULL OR contact_address1 IS NOT NULL)
+    """)
+
+    custview_df = utility.export_redshift_to_spark(f"""
+    WITH rut_h4c_cv AS 
+    (SELECT CIF_NO, CUSTOMER_SEGMENT, DUAL_SEGMENT, ACTIVE_FLAG, CIF_TYPE, N_PURE_CO,
+    N_PURE_MI, CITIZEN, AGE, N_HM, N_HM_CO, N_HM_OTHER, RISKGRADE, income, income_source,
+    worth_net, txns_kma, avg_payroll_income_6_months, n_product, inflow_amt,
+    bal_sa_avg6m, txns_channel, outflow_amt, last_custtxn_date,
+    txns_atm, bal_jadhai_avg6m, txns_branch,
+    CASE WHEN last_custtxn_date IS NULL THEN 999999 ELSE DATEDIFF('{TODAY}', last_custtxn_date) END AS last_custtxn_day,
+    CASE WHEN (income_source IS NULL OR income_source='D') THEN 0 ELSE income END AS income2
+    FROM ksprd_lab_infra_citrg.custview_loft_{CUSTVIEW}
+    WHERE CIF_TYPE = '1'
+    AND ACTIVE_FLAG != 'N'
+    AND (CUSTOMER_SEGMENT IN ('6', '7', '8') OR LENGTH(DUAL_SEGMENT) > 0)
+    AND (RISKGRADE IS NULL OR RISKGRADE IN ('', 'A','A+','A-','U'))
+    AND n_pure_co = 0
+    AND N_PURE_MI = 0
+    AND (AGE IS NULL OR (AGE >= 20 AND AGE <= 65))
+    AND (CITIZEN IN ('THAILAND','Unknown') OR CITIZEN IS NULL)
+    AND N_HM = 0
+    AND N_HM_CO = 0
+    AND n_hm_other = 0),
+    rut_h4c_cv_abt AS 
+    (SELECT CIF_NUMBER AS cif_no,
+    date_latest_app_in,
+    ever_mrta,
+    ever_home_4_cash,
+    loan_active_amt_6m,
+    tot_app_in,
+    date_open,
+    date_recent_open,
+    tot_net_cashflow_6m,
+    CASE WHEN date_latest_app_in IS NULL THEN 999999 ELSE DATEDIFF('{TODAY}', date_latest_app_in) END AS day_latest_app_in,
+    CASE WHEN date_open IS NULL THEN 999999 ELSE DATEDIFF('{TODAY}', date_open) END AS day_open,
+    CASE WHEN date_recent_open IS NULL THEN 999999 ELSE DATEDIFF('{TODAY}', date_recent_open) END AS day_recent_open
+    FROM ksprd_lab_analytics_data.analytic_base_table_{ABT}),
+    rut_h4c_merchant_cc AS 
+    (SELECT cif_no,
+    SUM(amt) AS CREDITCARD 
+    FROM ksprd_lab_analytics_data.merchant_category_Apr24Sep24 
+    WHERE merchant_category IN ('CREDITCARD') 
+    GROUP BY cif_no),
+    rut_h4c_merchant_ent AS 
+    (SELECT cif_no,
+    SUM(amt) AS ENTERTAINMENT 
+    FROM ksprd_lab_analytics_data.merchant_category_Apr24Sep24 
+    WHERE merchant_category IN ('ENTERTAINMENT') 
+    GROUP BY cif_no),
+    rut_h4c_merchant_ins AS 
+    (SELECT cif_no,
+    SUM(amt) AS INSURANCE 
+    FROM ksprd_lab_analytics_data.merchant_category_Apr24Sep24 
+    WHERE merchant_category IN ('INSURANCE') 
+    GROUP BY cif_no)
+    SELECT a.cif_no,
+    COALESCE(a.age, 0) AS age,
+    COALESCE(a.worth_net, 0) AS worth_net,
+    COALESCE(a.txns_kma, 0) AS txns_kma,
+    COALESCE(a.avg_payroll_income_6_months, 0) AS avg_payroll_income_6_months,
+    COALESCE(a.n_product, 0) AS n_product,
+    COALESCE(a.inflow_amt, 0) AS inflow_amt,
+    COALESCE(a.bal_sa_avg6m, 0) AS bal_sa_avg6m,
+    COALESCE(a.txns_channel, 0) AS txns_channel,
+    COALESCE(a.txns_atm, 0) AS txns_atm,
+    COALESCE(a.txns_branch, 0) AS txns_branch,
+    COALESCE(a.bal_jadhai_avg6m, 0) AS bal_jadhai_avg6m,
+    COALESCE(a.outflow_amt, 0) AS outflow_amt,
+    a.last_custtxn_day,
+    a.income2,
+    COALESCE(b.ever_mrta, 0) AS ever_mrta,
+    COALESCE(b.ever_home_4_cash, 0) AS ever_home_4_cash,
+    COALESCE(b.loan_active_amt_6m, 0) AS loan_active_amt_6m,
+    COALESCE(b.tot_app_in, 0) AS tot_app_in,
+    COALESCE(b.tot_net_cashflow_6m, 0) AS tot_net_cashflow_6m,
+    b.day_latest_app_in,
+    b.day_open,
+    b.day_recent_open,
+    COALESCE(c.CREDITCARD, 0) AS CREDITCARD,
+    COALESCE(d.ENTERTAINMENT, 0) AS ENTERTAINMENT,
+    COALESCE(e.INSURANCE, 0) AS INSURANCE
+    FROM rut_h4c_cv AS a
+    LEFT JOIN rut_h4c_cv_abt AS b ON a.cif_no = b.cif_no
+    LEFT JOIN rut_h4c_merchant_cc AS c ON a.cif_no = c.cif_no
+    LEFT JOIN rut_h4c_merchant_ent AS d ON a.cif_no = d.cif_no
+    LEFT JOIN rut_h4c_merchant_ins AS e ON a.cif_no = e.cif_no
+    """)
+
+    # Convert Spark DataFrames to Pandas DataFrames
+    kol = kol_df.toPandas()
+    bank = bank_df.toPandas()
+    custview = custview_df.toPandas()
+
+    # Process kol DataFrame
+    kol['start_date'] = pd.to_datetime(kol['start_date'])
+    temp = kol.copy()
+    temp['cif_no'] = temp['cif_number']
+    temp['address'] = temp['address'].str.lower()
+    
+    # Define address type columns
+    address_types = ['condo', 'mooban', 'townhouse', 'apartment', 'banpak', 'resort', 'hotel', 'pruksa', 'supalai', 'ap', 'sansiri', 'ananda', 'areeya', 'noble', 'lumpini']
+    
+    for address_type in address_types:
+        temp[address_type] = temp['address'].str.contains(address_type, case=False).astype(int)
+    
+    # Special case for 'land'
+    land_keywords = ['inizio', 'อินิซิโอ', 'อินนิซิโอ', 'villaggio', 'วิลเลจจิโอ', 'วิลลาจจิโอ', 'ชลลดา', 'ชัยพฤกษ์', 'พฤกษ์ลดา', 'มัณฑนา', 'nantawan', 'นันทวัน', 'laddawan', 'ลดาวัลย์', 'indy', 'อินดี้', 'อินดี', 'บ้านใหม่', 'the reserve', 'terrace', 'ease', 'the key', 'the room', 'the bangkok', 'vayla', 'วันเวลา']
+    temp['land'] = temp['address'].str.contains('|'.join(land_keywords), case=False).astype(int)
+    
+    kol2 = temp.groupby('cif_no')[address_types + ['land']].sum().reset_index()
+
+    # Process bank DataFrame
+    temp = bank.copy()
+    temp['register_notsame_contact'] = ((temp['register_address1'] != temp['contact_address1']) & temp['register_address1'].notna() & temp['contact_address1'].notna()).astype(int)
+    temp['cif_no'] = temp['cif_number']
+    temp['register_address1'] = temp['register_address1'].str.lower()
+    temp['contact_address1'] = temp['contact_address1'].str.lower()
+    
+    for address_type in address_types + ['land']:
+        temp[address_type] = (temp['register_address1'].str.contains(address_type, case=False) | temp['contact_address1'].str.contains(address_type, case=False)).astype(int)
+    
+    bank2 = temp.groupby('cif_no')[address_types + ['land', 'register_notsame_contact']].sum().reset_index()
+
+    # Merge DataFrames
+    df2 = pd.merge(custview, kol2, on=['cif_no'], how='left')
+    df3 = pd.merge(df2, bank2, on=['cif_no'], how='left')
+
+    # Process merged DataFrame
+    for col in address_types + ['land']:
+        df3[col] = ((df3[f'{col}_x'] == 1) | (df3[f'{col}_y'] == 1)).astype(int)
+
+    df3['mooban_and_condo'] = df3['mooban'] + df3['condo']
+    df3['register_notsame_contact'] = df3['register_notsame_contact'].fillna(0)
+    df3['brand'] = df3[['pruksa', 'supalai', 'ap', 'sansiri', 'ananda', 'areeya', 'noble', 'lumpini', 'land']].sum(axis=1)
+
+    # Fill NaN values
+    columns_to_fill = [f'{col}_{suffix}' for col in address_types + ['land'] for suffix in ['x', 'y']]
+    df3[columns_to_fill] = df3[columns_to_fill].fillna(0)
+
+    # Write the final DataFrame to S3
+    utility.write_df_to_s3(df3, "processed_data.csv")
+
+    # Log completion
+    utility.log_utils("DataProcessing", "Data processing completed successfully", "INFO")
+
+    return df3
+
+def process_data(utility):
+    # Load project properties
+    props = utility.get_project_properties()
+
+    # Load DataFrame from S3 or Redshift
+    df3 = utility.export_redshift_to_pandas(f"SELECT * FROM {props['input_table']}")
+
+    null_values_per_column = df3.isnull().sum()
+
+    # Convert specified columns to float64
+    columns_to_convert = [
+        'ever_mrta',
+        'ever_home_4_cash',
+        'loan_active_amt_6m',
+        'tot_app_in',
+        'tot_net_cashflow_6m',
+        'creditcard',
+        'insurance',
+        'entertainment'
+    ]
+    df3[columns_to_convert] = df3[columns_to_convert].astype('float64')
+
+    # Selecting specific columns
+    selected_columns = [
+        'cif_no', 'day_latest_app_in', 'register_notsame_contact', 'income2',
+        'age', 'mooban_and_condo', 'day_open', 'avg_payroll_income_6_months',
+        'n_product', 'day_recent_open', 'bal_sa_avg6m', 'worth_net',
+        'txns_branch', 'last_custtxn_day', 'ever_home_4_cash', 'bal_jadhai_avg6m',
+        'txns_atm', 'tot_net_cashflow_6m', 'insurance', 'tot_app_in', 'txns_kma',
+        'brand', 'loan_active_amt_6m', 'outflow_amt', 'creditcard', 'ever_mrta',
+        'inflow_amt', 'txns_channel', 'entertainment'
+    ]
+
+    # Creating a new DataFrame with the selected columns
+    df = df3[selected_columns]
+
+    # Write the processed DataFrame back to S3 or Redshift
+    utility.import_pandas_to_redshift(df, "overwrite", props['output_schema'], props['output_table'])
+
+import pandas as pd
+from pandas import Timestamp, Timedelta
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score
+import pickle
+import numpy as np
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_colwidth', None)
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+from xgboost import XGBClassifier
+
+def process_data(utility):
+    def pct_rank(i):
+        if i <= (len(df)/10)*1: return 1
+        elif i <= (len(df)/10)*2: return 2
+        elif i <= (len(df)/10)*3: return 3
+        elif i <= (len(df)/10)*4: return 4
+        elif i <= (len(df)/10)*5: return 5
+        elif i <= (len(df)/10)*6: return 6
+        elif i <= (len(df)/10)*7: return 7
+        elif i <= (len(df)/10)*8: return 8
+        elif i <= (len(df)/10)*9: return 9
+        else: return 10
+
+    def level(x):
+        if x<=2: return 'H'
+        elif x<=6: return 'M'
+        else: return 'L'
+
+    project_properties = utility.get_project_properties()
+    model_path = utility.get_s3_model_path()
+    model_file = f"{model_path}/h4c_xgb.sav"
+
+    with open(model_file, 'rb') as file:
+        model_xgb = pickle.load(file)
+
+    df = utility.export_redshift_to_pandas("SELECT * FROM your_table_name")
+
+    features = ['day_latest_app_in', 'register_notsame_contact', 'income2', 'age', 'mooban_and_condo', 'day_open', 'avg_payroll_income_6_months', 'n_product', 'day_recent_open', 'bal_sa_avg6m', 'worth_net', 'txns_branch', 'last_custtxn_day', 'ever_home_4_cash', 'bal_jadhai_avg6m', 'txns_atm', 'tot_net_cashflow_6m', 'insurance', 'tot_app_in', 'txns_kma', 'brand', 'loan_active_amt_6m', 'outflow_amt', 'creditcard', 'ever_mrta', 'inflow_amt', 'txns_channel', 'entertainment']
+
+    y_pred = model_xgb.predict_proba(df[features])
+    df['SCORE'] = y_pred[:,1]
+    df['RANK'] = df.SCORE.rank(method='first', ascending=False)
+    df['BIN'] = df['RANK'].apply(pct_rank)
+    df['LEVEL'] = df['BIN'].apply(level)
+
+    pd.set_option('display.float_format', lambda x: '%.10f' % x)
+    bin_stats = df.groupby('BIN').agg({'SCORE': ['mean', 'min', 'max']})
+    utility.write_df_to_s3(bin_stats, f"{utility.get_s3_temp_path()}/bin_stats.csv")
+
+    level_bin_crosstab = pd.crosstab(df['LEVEL'], df['BIN'])
+    utility.write_df_to_s3(level_bin_crosstab, f"{utility.get_s3_temp_path()}/level_bin_crosstab.csv")
+
+    utility.import_pandas_to_redshift(df, 'overwrite', project_properties['schema'], project_properties['output_table'])
+
+def process_score(utility):
+    # Get project properties
+    project_props = utility.get_project_properties()
+    
+    # Create Spark DataFrame from existing pandas DataFrame
+    score = spark.createDataFrame(df)
+    
+    # Write DataFrame to Redshift table
+    utility.import_spark_to_redshift(
+        data=score,
+        save_mode="overwrite",
+        schema=project_props["redshift_schema"],
+        table=f"h4c_score_{project_props['ABT']}"
+    )
+------------------
+
+
+[0;31m---------------------------------------------------------------------------[0m
+[0;31mModuleNotFoundError[0m                       Traceback (most recent call last)
+Cell [0;32mIn[2], line 5[0m
+[1;32m      3[0m [38;5;28;01mfrom[39;00m[38;5;250m [39m[38;5;21;01mdatetime[39;00m[38;5;250m [39m[38;5;28;01mimport[39;00m date, datetime
+[1;32m      4[0m [38;5;28;01mfrom[39;00m[38;5;250m [39m[38;5;21;01mdateutil[39;00m[38;5;21;01m.[39;00m[38;5;21;01mrelativedelta[39;00m[38;5;250m [39m[38;5;28;01mimport[39;00m relativedelta
+[0;32m----> 5[0m [38;5;28;01mfrom[39;00m[38;5;250m [39m[38;5;21;01msklearn[39;00m[38;5;21;01m.[39;00m[38;5;21;01mensemble[39;00m[38;5;250m [39m[38;5;28;01mimport[39;00m GradientBoostingClassifier
+[1;32m      6[0m [38;5;28;01mimport[39;00m[38;5;250m [39m[38;5;21;01mpickle[39;00m
+[1;32m      7[0m [38;5;28;01mimport[39;00m[38;5;250m [39m[38;5;21;01msys[39;00m
+
+[0;31mModuleNotFoundError[0m: No module named 'sklearn'
