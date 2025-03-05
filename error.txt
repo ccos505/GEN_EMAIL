@@ -1,2 +1,2 @@
-Error encountered while executing final_pipeline.ipynb
-Error encountered while executing final_pipeline.ipynb
+Error encountered while executing final_pipeline.ipynb: [NbConvertApp] WARNING | Config option `kernel_spec_manager_class` not recognized by `NbConvertApp`.
+[NbConvertApp] WARNING | pattern '/home/ec2-user/SageMaker/final_pipeline.ipynb' matched no files
